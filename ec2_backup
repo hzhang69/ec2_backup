@@ -1,0 +1,82 @@
+#!/bin/bash
+###################################
+# ec2 backup, a backup tool using AWS
+#
+# Authors:
+# Eli Davis <edavis1@stevens.edu>
+# Paul-Anthony Dudzinski <pdudzins@stevens.edu
+# Nick Noga <nnoge@stevens.edu>
+#
+#(c) 2014 by The Authors
+#
+#
+###################################
+
+#Vars
+#####################
+method=""
+volume=""
+
+#Functions
+#####################
+usage() {
+echo "ec2-backup [-h] [-m method] [-v volume-id} dir "
+} 
+
+
+
+
+#Main
+####################
+
+while getopts "hm:v:" o; do
+    case "${o}" in
+        h)
+                usage
+		exit 0
+            ;;
+        m)
+		if [ "$OPTARG" = "dd" ] || [ "$OPTARG" = "rsync" ]; then
+			method=$OPTARG
+		else
+			echo "Bad method argument choose rsync or dd"
+			exit 1
+		fi
+            ;;
+        v)
+		if [[ $OPTARG =~ ^vol-.{8,20} ]]; then 
+	                volume=$OPTARG
+		else 
+			echo "Volume id is not well formed"
+			exit 1
+		fi
+           ;;
+
+        *)
+		usage
+                exit 1;
+            ;;
+    esac
+done
+
+## Shift the args back the right spot
+shift $(($OPTIND - 1))
+
+if [ -z $1 ]; then
+	echo "No Directory entered"
+	exit 1
+fi
+
+if [ ! -d $1 ]; then
+        echo "Argument is not a directory"
+        exit 1
+fi
+
+
+stat $1
+
+du -sb $1
+
+exit 0
+
+
