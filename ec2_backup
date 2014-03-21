@@ -20,7 +20,7 @@ volume=""
 #Functions
 #####################
 usage() {
-echo "ec2-backup [-h] [-m method] [-v volume-id} dir "
+echo "ec2-backup [-h] [-m method] [-v volume-id] dir "
 } 
 
 
