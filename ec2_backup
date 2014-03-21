@@ -71,11 +71,26 @@ if [ ! -d $1 ]; then
         echo "Argument is not a directory"
         exit 1
 fi
-
-
 stat $1
 
-du -sb $1
+bytesize=$(du -sb $1 | cut -f1)
+gbsize=$(python -c "from math import ceil; print ceil(ceil(ceil($bytesize/1024)/1024)/1024)")
+
+
+## Determine and allocate necessary volume size IF a volume was not provided
+if [ $volume != "" ]; then
+	if [( $gbsize = 1 )]; then ## Minimum volume allocation is 1GB
+		## Allocate 2GB
+		alloc=2
+	elif [( $gbsize < 513 )]; then ## Maximum volume allocation is 1024GB
+		## Allocate 2*gbsize
+		alloc=2*$gbsize
+	else
+		echo "Directory is too large to be allocated into a single volume."
+		exit 1
+	fi
+
+##ec2-create-volume --size $alloc 
 
 exit 0
 
