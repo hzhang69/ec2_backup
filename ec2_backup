@@ -14,8 +14,12 @@
 
 #Vars
 #####################
+f_debug=0
 method=""
 volume=""
+volumeStatus=""
+volumeSize=""
+zone="us-east-1d"
 
 #Functions
 #####################
@@ -23,14 +27,101 @@ usage() {
 echo "ec2-backup [-h] [-m method] [-v volume-id] dir "
 } 
 
+#get the size and status of the volume
+#the volume id is passed as the first and only argument
+getVolumeStatus() {
+volumeStatus=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print$6}'`
+volumeSize=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print$4}'`
+
+#if the volume does not come back in one of these two state it is unusable by out program
+if [ "$volumeStatus" != "available" ] || [ "$volumeStatus" = "creating" ];then
+
+	echo "The volume is in use, deleted, or there was an error creating it"
+	exit 1
+fi
+}
+
+#wait for the volume to become available
+#there are no arguments for this function, it is dependent on global vars
+volumeWait() {
+	if [ $f_debug -eq 1 ]; then
+		echo "inside the wait function"
+	fi
+        while [ "$volumeStatus" != "available" ]; do
+                getVolumeStatus $volume
+		sleep 1
+		if [ $f_debug -eq 1 ]; then
+                echo "Waiting for the volume to be available"
+        	fi
+
+        done
+}
+
+#This function should be passed the backup directory as the only argument
+#the volume is set and checked for existence in the arg parser
+#the global zone variable must be set, this can be done by the user environment or by the
+#function that will create the instance 
+getVolume() {
+
+#Determine the size of the file and translate it into GB to run the command
+bytesize=$(du -sb $1 | cut -f1)
+#this function produces a float and outputs 0 if > 1024 bytes
+gbsize=$(python -c "from math import ceil; print ceil(ceil(ceil($bytesize/1024)/1024)/1024)")
+#Convert gbsize to integer
+gbsize=${gbsize/.*}
+alloc=0
+
+## Determine and allocate necessary volume size IF a volume was not provided
+if [ -z $volume ]; then
+        if [ $gbsize -eq 1 ] || [ $gbsize -eq 0 ]; then ## Minimum volume allocation is 1GB
+                ## Allocate 2GB
+                alloc=2
+        elif [ $gbsize -lt 513 ] && [ $gbsize -gt 1 ]; then ## Maximum volume allocation is 1024GB
+                ## Allocate 2*gbsize
+                 let alloc=gbsize*2
+        else
+                echo "Directory is too large to be allocated into a single volume."
+                exit 1
+        fi
+	if [ -z $alloc ] || [ $alloc -eq 0 ]; then
+		echo "Invalid allocation size"
+		exit 1
+	fi
+
+	volume=$(aws --output text ec2 create-volume --size $alloc --availability-zone $zone | awk '{print $6}')
+	getVolumeStatus $volume
+	#wait for the volume to be available busy wait....
+	volumeWait 	
+	echo $volume
+else
+##volume entered
+
+	getVolumeStatus $volume
+	#Only error here I can think of outside status and size is zone incompatibility
+	if [ $gbsize -gt $volumeSize ]; then
+		echo "The volume given is too small to backup the file"
+                exit 1
+	elif [ $gbsize -eq $volumeSize ] && [ $gbsize -ne 1 ]; then
+		echo "The volume size and directory size are equal use a larger volume "
+		exit 1
+	fi
+
+	volumeWait
+	echo $volume
+fi
+
+}
 
 
 
 #Main
 ####################
 
-while getopts "hm:v:" o; do
+while getopts "dhm:v:" o; do
     case "${o}" in
+	d)
+		f_debug=1
+		;;
         h)
                 usage
 		exit 0
@@ -48,6 +139,12 @@ while getopts "hm:v:" o; do
 	                volume=$OPTARG
 		else 
 			echo "Volume id is not well formed"
+			exit 1
+		fi
+		##Check to see if the volume is valid
+		 volcheck=`aws ec2 describe-volumes --volume-ids $volume`
+	 	if [[ "$volcheck" =~ ^A.client.error ]]; then
+			echo "Error setting the volume, please check the volume"
 			exit 1
 		fi
            ;;
@@ -71,26 +168,19 @@ if [ ! -d $1 ]; then
         echo "Argument is not a directory"
         exit 1
 fi
-stat $1
 
-bytesize=$(du -sb $1 | cut -f1)
-gbsize=$(python -c "from math import ceil; print ceil(ceil(ceil($bytesize/1024)/1024)/1024)")
+##Maybe we should stat the file for error checking? Is there any case in which the above
+##checks can be bypassed? More on this later
+#stat $1
 
+##Testing the functions
+getVolume $1
 
-## Determine and allocate necessary volume size IF a volume was not provided
-if [ $volume != "" ]; then
-	if [( $gbsize = 1 )]; then ## Minimum volume allocation is 1GB
-		## Allocate 2GB
-		alloc=2
-	elif [( $gbsize < 513 )]; then ## Maximum volume allocation is 1024GB
-		## Allocate 2*gbsize
-		alloc=2*$gbsize
-	else
-		echo "Directory is too large to be allocated into a single volume."
-		exit 1
-	fi
+if [ $f_debug -eq 1 ]; then
 
-##ec2-create-volume --size $alloc 
+	echo "Volume Status: " $volumeStatus
+	echo "Volume Size: " $volumeSize
+fi
 
 exit 0
 
