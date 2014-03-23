@@ -20,6 +20,12 @@ volume=""
 volumeStatus=""
 volumeSize=""
 zone="us-east-1d"
+configfile=""
+ec2cert=""
+ec2Home=""
+ec2privatekey=""
+ec2flags=""
+sshflags=""
 
 #Functions
 #####################
@@ -34,7 +40,7 @@ volumeStatus=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print
 volumeSize=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print$4}'`
 
 #if the volume does not come back in one of these two state it is unusable by out program
-if [ "$volumeStatus" != "available" ] || [ "$volumeStatus" = "creating" ];then
+if [ "$volumeStatus" != "available" ] || [ "$volumeStatus" != "creating" ];then
 
 	echo "The volume is in use, deleted, or there was an error creating it"
 	exit 1
@@ -64,7 +70,7 @@ volumeWait() {
 getVolume() {
 
 #Determine the size of the file and translate it into GB to run the command
-bytesize=$(du -sb $1 | cut -f1)
+bytesize=$(du -sb $1 2>/dev/null | cut -f1)
 #this function produces a float and outputs 0 if > 1024 bytes
 gbsize=$(python -c "from math import ceil; print ceil(ceil(ceil($bytesize/1024)/1024)/1024)")
 #Convert gbsize to integer
@@ -112,6 +118,20 @@ fi
 
 }
 
+getEnvironmentVars() {
+
+configfile=$AWS_CONFIG_FILE
+ec2cert=$EC2_CERT
+ec2Home=$EC2_HOME
+ec2privatekey=$EC2_PRIVATE_KEY
+ec2flags=$EC2_BACKUP_FLAGS_AWS
+sshflags=$EC2_BACKUP_FLAGS_SSH
+verbose=$EC2_BACKUP_VERBOSE
+
+}
+
+getInstance() {
+}
 
 
 #Main
@@ -174,7 +194,7 @@ fi
 #stat $1
 
 ##Testing the functions
-getVolume $1
+#getVolume $1
 
 if [ $f_debug -eq 1 ]; then
 
