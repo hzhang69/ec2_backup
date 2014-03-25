@@ -19,18 +19,25 @@ method=""
 volume=""
 volumeStatus=""
 volumeSize=""
-zone="us-east-1d"
+zone="us-east-1a"
 configfile=""
 ec2cert=""
 ec2Home=""
 ec2privatekey=""
 ec2flags=""
 sshflags=""
+instance=""
+
+attachment=""
+attachStatus=""
+attachPoint="/dev/sdh"
+
+
 
 #Functions
 #####################
 usage() {
-echo "ec2-backup [-h] [-m method] [-v volume-id] dir "
+echo "ec2_backup [-h] [-m method] [-v volume-id] dir "
 } 
 
 #get the size and status of the volume
@@ -40,8 +47,8 @@ volumeStatus=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print
 volumeSize=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print$4}'`
 
 #if the volume does not come back in one of these two state it is unusable by out program
-if [ "$volumeStatus" != "available" ] || [ "$volumeStatus" != "creating" ];then
-
+if [ "$volumeStatus" != "available" ] && [ "$volumeStatus" != "creating" ];then
+	echo "$volumeStatus"
 	echo "The volume is in use, deleted, or there was an error creating it"
 	exit 1
 fi
@@ -51,13 +58,13 @@ fi
 #there are no arguments for this function, it is dependent on global vars
 volumeWait() {
 	if [ $f_debug -eq 1 ]; then
-		echo "inside the wait function"
+		echo "Volume initializing..."
 	fi
         while [ "$volumeStatus" != "available" ]; do
                 getVolumeStatus $volume
 		sleep 1
 		if [ $f_debug -eq 1 ]; then
-                echo "Waiting for the volume to be available"
+                echo "Waiting for the volume to be available..."
         	fi
 
         done
@@ -130,8 +137,56 @@ verbose=$EC2_BACKUP_VERBOSE
 
 }
 
-getInstance() {
+#getInstance() {
+
+
+#}
+
+
+
+
+
+
+
+###### ATTACHMENT FUNCTIONS
+#This function attaches a given volume and a given instance and ensures that the 
+#volume has been attached prior to returning. It attaches to /dev/sdh which should be
+#empty on a new instance. This is inside the scope of the program as no pre-existing
+#instances are to be used.
+attachVolume() {
+
+#instance="i-c49669e5"     <---Testing purposes
+if [ $f_debug -eq 1 ]; then
+	echo "Attaching volume $volume to instance $instance..."
+fi
+
+attachment=$(aws ec2 attach-volume --volume-id $volume --instance-id $instance --device $attachPoint)
+attachWait
+if [ $f_debug -eq 1 ]; then
+	echo "Volume $volume has successfully been attached."
+fi
+
 }
+
+#Waits for attachment to say "attached"
+attachWait() {
+        if [ $f_debug -eq 1 ]; then
+                echo "Waiting for attachment..."
+        fi
+	attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
+	
+	#Loop until attached
+        while [ "$attachStatus" != "attached" ]; do
+                
+                sleep 1
+                if [ $f_debug -eq 1 ]; then
+                	echo "Waiting for the volume to attach..."
+                fi
+		
+		attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
+        done
+}
+########################
 
 
 #Main
@@ -194,7 +249,8 @@ fi
 #stat $1
 
 ##Testing the functions
-#getVolume $1
+getVolume $1
+attachVolume $instance
 
 if [ $f_debug -eq 1 ]; then
 
