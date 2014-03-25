@@ -13,3 +13,7 @@ ec2backup takes as input the volume from amazon, in order to error check this th
 Volume Creation
 ==========
 ec2backup calculates the size of the volume to be twice the size of the directory to backed up except when the file is less than 1 GB. In the smallest case (> 1 GB) ec2backup creates a volume of 2GB in size in order to make the volume more reusable. This assumption is contingent on the tendency for file size to grow and the overall growth of filesize as programs and users generate more data.
+
+Key Pair and Security Group
+==========
+The Keypair and the Security Group are to come from the AWS_EC2_BACKUP_FLAGS, if these two do not exist the program will error and exit. The variable will be checked by parsing and if either do not exist the program will exit.
