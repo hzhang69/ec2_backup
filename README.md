@@ -16,4 +16,4 @@ ec2backup calculates the size of the volume to be twice the size of the director
 
 Key Pair and Security Group
 ==========
-The Keypair and the Security Group are to come from the AWS_EC2_BACKUP_FLAGS, if these two do not exist the program will error and exit. The variable will be checked by parsing and if either do not exist the program will exit.
+The Keypair and the Security Group are to come from the AWS_EC2_BACKUP_FLAGS, if these two do not exist the program will error and exit. Only the "security-groups" and "key-name" parameters may be used to pass these two variables. After these variables are checked for existence they are also checked against the users list of available keys and groups. If they do not exist in the list the program will exit. Finally these variables can still cause the program to exit at instance creation time if they are incorrectly configured. One particular case that will cause the program to exit are incorrectly configured ports, ec2_backup does not check for port configuration but will exit if an ssh connection cannot be established.
