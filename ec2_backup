@@ -126,30 +126,76 @@ fi
 }
 
 getEnvironmentVars() {
-
-configfile=$AWS_CONFIG_FILE
-ec2cert=$EC2_CERT
-ec2Home=$EC2_HOME
 ec2privatekey=$EC2_PRIVATE_KEY
-ec2flags=$EC2_BACKUP_FLAGS_AWS
+ec2flags=${EC2_BACKUP_FLAGS_AWS}
 sshflags=$EC2_BACKUP_FLAGS_SSH
 verbose=$EC2_BACKUP_VERBOSE
 
+#Parse the keypair from the variable on whitespace
+f_keypair=0
+f_secgroup=0
+secgroup=""
+keypair=""
+
+#get the two arguments if they exist
+args=($EC2_BACKUP_FLAGS_AWS)
+for ((index=0; index <= ${#args[@]}; index++));
+do
+         if [ "${args[index]}" == "-security-groups" ]; then
+                 secgroup=${args[index+1]}
+         fi
+         if [ "${args[index]}" == "-key-name" ]; then
+                keypair=${args[index+1]}
+         fi
+
+done
+
+#If either the keypair or the security group are null then exit 1
+if [ -z  $keypair ] || [  -z $secgroup  ]; then
+        echo "The keypair or the security group are empty please set them in EC2_BACKUP_FLAGS_AWS"
+        exit 1
+fi
+
+
+#ask aws for the security groups and see if the input in the variable is in the list
+for group in $( aws --output text  ec2 describe-security-groups |
+		 awk -F"\t" '{if ($1 == "SECURITYGROUPS"){print $4}}')
+do
+	if [ "$group" = "$secgroup" ]; then
+		f_secgroup=1
+		break
+	fi
+done
+
+# if the flag is equal 0 it was not in the list above, exit 1 b/c there is not a valid security group
+if [ $f_secgroup -eq 0 ]; then
+	echo "The security group that was supplied is not valid"
+	exit 1
+fi
+
+#check the keypairs in the users setup and see if the keypair passed is in them
+for key in $( aws --output text ec2 describe-key-pairs | awk -F"\t" '{print $3}')
+do
+
+	if [ "$key" = "$keypair" ]; then
+		f_keypair=1
+		break
+	fi
+done
+
+# if the flag is equal 0 it was not in the list above, exit 1 b/c there is not a valid security group
+if [ $f_keypair -eq 0 ]; then
+        echo "The keypair that was supplied is not valid"
+        exit 1
+fi
+
+
 }
-
-#getInstance() {
-
-
-#}
-
-
-
-
 
 
 
 ###### ATTACHMENT FUNCTIONS
-#This function attaches a given volume and a given instance and ensures that the 
+#This function attaches a given volume and a given instance and ensures that the
 #volume has been attached prior to returning. It attaches to /dev/sdh which should be
 #empty on a new instance. This is inside the scope of the program as no pre-existing
 #instances are to be used.
@@ -157,13 +203,13 @@ attachVolume() {
 
 #instance="i-c49669e5"     <---Testing purposes
 if [ $f_debug -eq 1 ]; then
-	echo "Attaching volume $volume to instance $instance..."
+        echo "Attaching volume $volume to instance $instance..."
 fi
 
 attachment=$(aws ec2 attach-volume --volume-id $volume --instance-id $instance --device $attachPoint)
 attachWait
 if [ $f_debug -eq 1 ]; then
-	echo "Volume $volume has successfully been attached."
+        echo "Volume $volume has successfully been attached."
 fi
 
 }
@@ -173,20 +219,22 @@ attachWait() {
         if [ $f_debug -eq 1 ]; then
                 echo "Waiting for attachment..."
         fi
-	attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
-	
-	#Loop until attached
+        attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
+
+        #Loop until attached
         while [ "$attachStatus" != "attached" ]; do
-                
+
                 sleep 1
                 if [ $f_debug -eq 1 ]; then
-                	echo "Waiting for the volume to attach..."
+                        echo "Waiting for the volume to attach..."
                 fi
-		
-		attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
+
+                attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
         done
 }
-########################
+
+
+#getInstance(){}
 
 
 #Main
@@ -249,8 +297,10 @@ fi
 #stat $1
 
 ##Testing the functions
-getVolume $1
-attachVolume $instance
+#getVolume $1
+#attachVolume $instanc
+#getVolume $1
+getEnvironmentVars
 
 if [ $f_debug -eq 1 ]; then
 
