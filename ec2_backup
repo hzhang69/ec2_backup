@@ -16,15 +16,15 @@
 #####################
 f_debug=0
 method=""
+
+###VOLUME
 volume=""
 volumeStatus=""
 volumeSize=""
+
+###INSTANCE
+ec2defaults="--image-id ami-6de0dd04  --count 1 --instance-type t1.micro"
 zone="us-east-1a"
-configfile=""
-ec2cert=""
-ec2Home=""
-ec2privatekey=""
-ec2flags=""
 sshflags=""
 instance=""
 
@@ -125,11 +125,12 @@ fi
 
 }
 
+#This function is for parsing the environment variables that need to be set for the 
+#program to work correctly. We need to look a the two that pertain to EC2 as per the spec
+#not sure what I can do to make the AMAZON environment variables work correctly...
 getEnvironmentVars() {
-ec2privatekey=$EC2_PRIVATE_KEY
 ec2flags=${EC2_BACKUP_FLAGS_AWS}
-sshflags=$EC2_BACKUP_FLAGS_SSH
-verbose=$EC2_BACKUP_VERBOSE
+verbose=${EC2_BACKUP_VERBOSE}
 
 #Parse the keypair from the variable on whitespace
 f_keypair=0
@@ -141,10 +142,10 @@ keypair=""
 args=($EC2_BACKUP_FLAGS_AWS)
 for ((index=0; index <= ${#args[@]}; index++));
 do
-         if [ "${args[index]}" == "-security-groups" ]; then
+         if [ "${args[index]}" == "--security-groups" ]; then
                  secgroup=${args[index+1]}
          fi
-         if [ "${args[index]}" == "-key-name" ]; then
+         if [ "${args[index]}" == "--key-name" ]; then
                 keypair=${args[index+1]}
          fi
 
@@ -190,6 +191,10 @@ if [ $f_keypair -eq 0 ]; then
 fi
 
 
+if [ ! -z $verbose ];then
+	f_debug=1;
+fi
+
 }
 
 
@@ -234,7 +239,28 @@ attachWait() {
 }
 
 
-#getInstance(){}
+
+getInstance(){
+dryrun_success="A client error (DryRunOperation) occurred when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set."
+
+
+instance_dryrun=`aws ec2 run-instances --dry-run $ec2defaults ${EC2_BACKUP_FLAGS_AWS} 2>&1`
+
+if [ "$instance_dryrun" != "$dryrun_success" ]; then
+        echo "Instance instantiation failed : $instance_dryrun"
+        exit 1;
+fi
+
+instance=`aws ec2 run-instances $ec2defaults ${EC2_BACKUP_FLAGS_AWS}|grep INSTANCES | awk '{print $8}'`
+
+sleep 3
+}
+
+terminateInstance() {
+aws ec2 terminate-instances --instance-ids $instance
+}
+
+
 
 
 #Main
