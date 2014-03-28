@@ -251,8 +251,8 @@ if [ "$instance_dryrun" != "$dryrun_success" ]; then
         exit 1;
 fi
 
-instance=`aws ec2 run-instances $ec2defaults ${EC2_BACKUP_FLAGS_AWS}|grep INSTANCES | awk '{print $8}'`
-
+instance=`aws ec2 run-instances $ec2defaults ${EC2_BACKUP_FLAGS_AWS}| grep InstanceId | awk '{x=$2; gsub("[\",]","",x); print x}'`
+echo $instance
 sleep 3
 }
 
@@ -321,7 +321,7 @@ fi
 ##Maybe we should stat the file for error checking? Is there any case in which the above
 ##checks can be bypassed? More on this later
 #stat $1
-
+getInstance
 ##Testing the functions
 #getVolume $1
 #attachVolume $instanc
