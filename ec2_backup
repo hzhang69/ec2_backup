@@ -27,6 +27,7 @@ ec2defaults="--image-id ami-6de0dd04  --count 1 --instance-type t1.micro"
 zone="us-east-1a"
 sshflags=""
 instance=""
+hostname=""
 
 attachment=""
 attachStatus=""
@@ -252,7 +253,6 @@ if [ "$instance_dryrun" != "$dryrun_success" ]; then
 fi
 
 instance=`aws ec2 run-instances $ec2defaults ${EC2_BACKUP_FLAGS_AWS}| grep InstanceId | awk '{x=$2; gsub("[\",]","",x); print x}'`
-echo $instance
 sleep 3
 }
 
@@ -260,7 +260,21 @@ terminateInstance() {
 aws ec2 terminate-instances --instance-ids $instance
 }
 
+getHostname(){
 
+	while [ -z $hostname ]; do
+		hostname=`aws ec2 describe-instances --output text | grep $instance | awk '{print $15}'`
+		sleep 5;	
+		if [ $f_debug -eq 1 ]; then
+                        echo "Waiting to get hostname..."
+                fi
+
+	done	
+	if [ $f_debug -eq 1 ]; then
+                        echo "Hostname found..."
+        fi
+
+}
 
 
 #Main
@@ -321,7 +335,8 @@ fi
 ##Maybe we should stat the file for error checking? Is there any case in which the above
 ##checks can be bypassed? More on this later
 #stat $1
-getInstance
+#getInstance
+#getHostname
 ##Testing the functions
 #getVolume $1
 #attachVolume $instanc
