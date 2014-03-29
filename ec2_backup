@@ -245,14 +245,14 @@ getInstance(){
 dryrun_success="A client error (DryRunOperation) occurred when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set."
 
 
-instance_dryrun=`aws ec2 run-instances --dry-run $ec2defaults ${EC2_BACKUP_FLAGS_AWS} 2>&1`
+instance_dryrun=`aws ec2  run-instances --output text --dry-run $ec2defaults ${EC2_BACKUP_FLAGS_AWS} 2>&1`
 
 if [ "$instance_dryrun" != "$dryrun_success" ]; then
         echo "Instance instantiation failed : $instance_dryrun"
         exit 1;
 fi
 
-instance=`aws ec2 run-instances $ec2defaults ${EC2_BACKUP_FLAGS_AWS}| grep InstanceId | awk '{x=$2; gsub("[\",]","",x); print x}'`
+instance=`aws ec2 run-instances --output text  $ec2defaults ${EC2_BACKUP_FLAGS_AWS}|grep INSTANCES | awk '{print $8}'`
 sleep 3
 }
 
