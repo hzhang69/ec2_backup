@@ -262,17 +262,18 @@ aws ec2 terminate-instances --instance-ids $instance
 
 getHostname(){
 
-	while [ -z $hostname ]; do
-		hostname=`aws ec2 describe-instances --output text | grep $instance | awk '{print $15}'`
-		sleep 5;	
-		if [ $f_debug -eq 1 ]; then
-                        echo "Waiting to get hostname..."
-                fi
+if [ $f_debug -eq 1 ]; then
+        echo "Waiting to get hostname..."
+fi
 
-	done	
-	if [ $f_debug -eq 1 ]; then
-                        echo "Hostname found..."
-        fi
+while [ -z $hostname ] && [ $hostname!="None" ]; do
+	hostname=`aws ec2 describe-instances --output text | grep $instance | awk '{print $15}'`
+	sleep 5;	
+done	
+
+if [ $f_debug -eq 1 ]; then
+        echo "Hostname found: $hostname"
+fi
 
 }
 
@@ -335,8 +336,8 @@ fi
 ##Maybe we should stat the file for error checking? Is there any case in which the above
 ##checks can be bypassed? More on this later
 #stat $1
-#getInstance
-#getHostname
+getInstance
+getHostname
 ##Testing the functions
 #getVolume $1
 #attachVolume $instanc
