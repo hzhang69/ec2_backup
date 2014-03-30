@@ -16,6 +16,7 @@
 #####################
 f_debug=0
 method=""
+backup_name="backup.tar"
 
 ###VOLUME
 volume=""
@@ -25,6 +26,7 @@ volumeSize=""
 ###INSTANCE
 ec2defaults="--image-id ami-6de0dd04  --count 1 --instance-type t1.micro"
 zone="us-east-1c"
+username="ubuntu"
 sshflags=""
 instance=""
 hostname=""
@@ -272,7 +274,7 @@ fi
 
 while [ -z $hostname ] || [[ "$hostname" == *"None"* ]]; do
 	hostname=`aws ec2 describe-instances --output text | grep $instance | awk '{print $15}'`
-	sleep 5;	
+	echo $hostname
 done	
 
 if [ $f_debug -eq 1 ]; then
@@ -291,13 +293,40 @@ fi
 
 while [[ "$ncOutput" != *"succeeded"* ]]; do
 	ncOutput=`nc -zv -w $timeout $hostname $sshPort 2>&1`
-	echo $ncOutput
+	echo "$ncOutput"
 done
 
 if [ $f_debug -eq 1 ]; then
         echo "Host Up!"
 fi
 
+
+}
+
+
+
+#DD BACKUP
+#This function will archive the specified directory and backup to the remote location using dd
+#It will take the directory to be backed up as its only argument
+####################
+ddBackup(){
+if [ $f_debug -eq 1 ]; then
+        echo "Tar directory: $1"
+fi
+
+tar -zcvf $backup_name $1 >>/dev/null 2>&1
+
+if [ $f_debug -eq 1 ]; then
+        echo "dd to remote..."
+fi
+
+dd if=$backup_name | ssh -o "StrictHostKeyChecking no" -i ../$keypair $username@$hostname sudo dd of=$mountpoint/$backup_name
+
+if [ $f_debug -eq 1 ]; then
+        echo "dd complete"
+fi
+
+rm $backup_name
 }
 
 #createFilesystem
@@ -381,13 +410,15 @@ fi
 ##Maybe we should stat the file for error checking? Is there any case in which the above
 ##checks can be bypassed? More on this later
 #stat $1
-#getEnvironmentVars
-#getInstance
-#getHostname
-#checkSSH
-#getVolume $1
-#attachVolume
-#createFilesystem
+getEnvironmentVars
+getInstance
+getHostname
+checkSSH
+getVolume $1
+attachVolume
+createFilesystem
+ddBackup $1
+
 ##Testing the functions
 #getVolume $1
 #attachVolume $instanc
