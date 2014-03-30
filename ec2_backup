@@ -35,7 +35,8 @@ ncOutput=""
 attachment=""
 attachStatus=""
 attachPoint="/dev/sdh"
-
+devicename="/dev/xvdh"
+mountpoint="/media/backup"
 
 
 #Functions
@@ -299,6 +300,28 @@ fi
 
 }
 
+#createFilesystem
+#this function will create a filesystem on the attached volume and mount the 
+createFilesystem(){
+
+if [ $f_debug -eq 1 ]; then
+        echo "Creating filesystem on volume..."
+fi
+
+
+ssh -i ../$keypair -o "StrictHostKeyChecking no"  ubuntu@$hostname "
+sudo mkfs -t ext4 $devicename >/dev/null 2>&1
+sudo mkdir $mountpoint >/dev/null 2>&1
+sudo mount $devicename $mountpoint >/dev/null 2>&1
+exit
+">/dev/null 2>&1
+
+if [ $f_debug -eq 1 ]; then
+        echo "Filesystem created."
+fi
+
+
+}
 
 #Main
 ####################
@@ -358,17 +381,17 @@ fi
 ##Maybe we should stat the file for error checking? Is there any case in which the above
 ##checks can be bypassed? More on this later
 #stat $1
-getInstance
-getHostname
-checkSSH
-getVolume $1
-attachVolume
-terminateInstance
+#getEnvironmentVars
+#getInstance
+#getHostname
+#checkSSH
+#getVolume $1
+#attachVolume
+#createFilesystem
 ##Testing the functions
 #getVolume $1
 #attachVolume $instanc
 #getVolume $1
-getEnvironmentVars
 
 if [ $f_debug -eq 1 ]; then
 
