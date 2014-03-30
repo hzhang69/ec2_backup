@@ -34,7 +34,7 @@ hostname=""
 sshPort=22
 timeout=5
 ncOutput=""
-
+instanceState=""
 volzone=""
 zone=""
 
@@ -274,8 +274,23 @@ attachWait() {
         done
 }
 
+#this function waits for the instance to return running so that we can wait for ssh
+#this function will also terminate on any instance status code besides pending and running
+getInstanceStatus() {
+instanceState=`aws ec2 describe-instances --output text --instance-id $instance | grep STATE| awk '{print $3}'`
+        echo "Instance State: $instanceState"
+
+        if [ "$instanceState" != "pending" ] && [ "$instanceState" != "running" ]; then
+                echo " Instance is in an unusable state" 1>&2
+		errorTerminate
+                exit 1;
+        fi
+}
 
 
+#This function gets the instance and will exit if the intance cannot be run as per the
+#backupflags that were supplied. It will then call the getInstanceStatus function to
+#busywait until the intance is in the running state to prepare it for the ssh testing
 getInstance(){
 dryrun_success="A client error (DryRunOperation) occurred when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set."
 
@@ -289,6 +304,18 @@ if [ "$instance_dryrun" != "$dryrun_success" ]; then
 fi
 
 instance=`aws ec2 run-instances --output text --availability-zone $zone $ec2defaults ${EC2_BACKUP_FLAGS_AWS}|grep INSTANCES | awk '{print $8}'`
+
+
+if [ $f_debug -eq 1 ]; then
+        echo "Waiting for the instance to be available..."
+fi
+
+while [[ "$instanceState" != "running" ]]; do
+                getInstanceStatus
+                sleep 1
+        done
+
+#Extra sleep to make sure that the instance has more time to boot up before ssh wait happends
 sleep 3
 }
 
