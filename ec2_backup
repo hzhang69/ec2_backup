@@ -288,7 +288,7 @@ if [ $f_debug -eq 1 ]; then
 fi
 
 
-while [[ "$ncOutput" =~ *"succeeded"* ]]; do
+while [[ "$ncOutput" != *"succeeded"* ]]; do
 	ncOutput=`nc -zv -w $timeout $hostname $sshPort 2>&1`
 	echo $ncOutput
 done
