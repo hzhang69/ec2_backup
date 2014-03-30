@@ -15,6 +15,7 @@
 #Vars
 #####################
 f_debug=0
+f_uservol=0
 method=""
 backup_name="backup.tar"
 
@@ -59,6 +60,7 @@ volumeSize=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print$4
 if [ "$volumeStatus" != "available" ] && [ "$volumeStatus" != "creating" ];then
 	#echo "$volumeStatus"
 	echo "The volume is in use, deleted, or there was an error creating it" 1>&2
+	errorTerminate
 	exit 1
 fi
 }
@@ -216,7 +218,7 @@ if [ $f_keypair -eq 0 ]; then
 fi
 
 
-if [ ! -z $verbose ];then
+if [ ! -z "$verbose" ];then
 	f_debug=1;
 fi
 
@@ -272,6 +274,7 @@ instance_dryrun=`aws ec2  run-instances --output text --dry-run $ec2defaults ${E
 
 if [ "$instance_dryrun" != "$dryrun_success" ]; then
         echo "Instance instantiation failed : $instance_dryrun" 1>&2
+	errorTerminate
         exit 1;
 fi
 
@@ -281,6 +284,17 @@ sleep 3
 
 terminateInstance() {
 aws ec2 terminate-instances --instance-ids $instance >/dev/null
+}
+
+errorTerminate() {
+	if [ ! -z "$instance" ]; then
+		aws ec2 terminate-instances --instance-ids $instance >/dev/null
+	fi
+
+	if [ ! -z "$volume" ] && [ $f_uservol -eq 0 ] ; then
+		aws ec2 delete-volume --volume-id $volume >/dev/null	
+	fi
+
 }
 
 getHostname(){
@@ -390,6 +404,7 @@ while getopts "dhm:v:" o; do
         v)
 		if [[ $OPTARG =~ ^vol-.{8,20} ]]; then 
 	                volume=$OPTARG
+			f_uservol=1
 		else 
 			echo "Volume id is not well formed" 1>&2
 			exit 1
