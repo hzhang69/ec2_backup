@@ -231,7 +231,7 @@ attachWait() {
         attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
 
         #Loop until attached
-        while [ "$attachStatus" != "attached" ]; do
+        while [[ "$attachStatus" != *"attached"* ]]; do
 
                 sleep 1
                 if [ $f_debug -eq 1 ]; then
