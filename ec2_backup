@@ -303,7 +303,7 @@ if [ "$instance_dryrun" != "$dryrun_success" ]; then
         exit 1;
 fi
 
-instance=`aws ec2 run-instances --output text --placement AvailabilityZone=zone $ec2defaults ${EC2_BACKUP_FLAGS_AWS}|grep INSTANCES | awk '{print $8}'`
+instance=`aws ec2 run-instances --output text --placement AvailabilityZone=$zone $ec2defaults ${EC2_BACKUP_FLAGS_AWS}|grep INSTANCES | awk '{print $8}'`
 
 
 if [ $f_debug -eq 1 ]; then
