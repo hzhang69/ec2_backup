@@ -280,7 +280,7 @@ getInstance(){
 dryrun_success="A client error (DryRunOperation) occurred when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set."
 
 
-instance_dryrun=`aws ec2  run-instances --output text --dry-run $ec2defaults ${EC2_BACKUP_FLAGS_AWS} 2>&1`
+instance_dryrun=`aws ec2  run-instances --output text --dry-run --placement AvailabilityZone=$zone $ec2defaults ${EC2_BACKUP_FLAGS_AWS} 2>&1`
 
 if [ "$instance_dryrun" != "$dryrun_success" ]; then
         echo "Instance instantiation failed : $instance_dryrun" 1>&2
@@ -349,23 +349,22 @@ fi
 #It will take the directory to be backed up as its only argument
 ####################
 ddBackup(){
-if [ $f_debug -eq 1 ]; then
-        echo "Tar directory: $1"
-fi
-
-tar -zcvf $backup_name $1 >>/dev/null 2>&1
 
 if [ $f_debug -eq 1 ]; then
         echo "dd to remote..."
 fi
 
-dd if=$backup_name | ssh -o "StrictHostKeyChecking no" -i $keypair $username@$hostname sudo dd of=$mountpoint/$backup_name
+#dd if=$backup_name | ssh -o "StrictHostKeyChecking no" -i $keypair $username@$hostname sudo dd of=$mountpoint/$backup_name
+var=`tar -cf - $1 | ssh -o "StrictHostKeyChecking no" -i $keypair $username@$hostname 'sudo dd of=/dev/sdh' 2>&1`
+if [ $? -gt 0 ];then
+        echo $var
+        exit 1
+fi
+
 
 if [ $f_debug -eq 1 ]; then
         echo "dd complete"
 fi
-
-rm $backup_name
 }
 
 #createFilesystem
@@ -377,12 +376,17 @@ if [ $f_debug -eq 1 ]; then
 fi
 
 
-ssh -i $keypair -o "StrictHostKeyChecking no"  ubuntu@$hostname "
+var=`ssh -i $keypair -o "StrictHostKeyChecking no"  ubuntu@$hostname "
 sudo mkfs -t ext4 $devicename >/dev/null 2>&1
 sudo mkdir $mountpoint >/dev/null 2>&1
 sudo mount $devicename $mountpoint >/dev/null 2>&1
 exit
-">/dev/null 2>&1
+" 2>&1`
+
+if [ $? -gt 0 ]; then
+	echo "$var" 1>&2;
+	exit 1;
+fi
 
 if [ $f_debug -eq 1 ]; then
         echo "Filesystem created."
@@ -458,9 +462,10 @@ getHostname
 checkSSH
 getVolume $1
 attachVolume
-createFilesystem
 if [ "$method" = "rsync" ]; then
+
 	echo "TODO: rsync"
+	createFilesystem
 else
 	ddBackup $1
 fi
