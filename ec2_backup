@@ -25,7 +25,6 @@ volumeSize=""
 
 ###INSTANCE
 ec2defaults="--image-id ami-6de0dd04  --count 1 --instance-type t1.micro"
-zone="us-east-1c"
 username="ubuntu"
 sshflags=""
 instance=""
@@ -33,6 +32,9 @@ hostname=""
 sshPort=22
 timeout=5
 ncOutput=""
+
+volzone=""
+zone=""
 
 attachment=""
 attachStatus=""
@@ -60,6 +62,18 @@ if [ "$volumeStatus" != "available" ] && [ "$volumeStatus" != "creating" ];then
 	exit 1
 fi
 }
+
+
+#Finds an availability zone for the user. Finds volume zone if -v specified.
+getAvailabilityZone() {
+
+if [ ! -z $volume]; then
+	zone="--region `aws ec2 describe-volumes --output text | grep $volume | awk '{print $2}'`"
+else
+	zone=`aws ec2 describe-availability-zones --output text | grep -m 1 "1" | awk '{print $4}'`
+fi
+}
+
 
 #wait for the volume to become available
 #there are no arguments for this function, it is dependent on global vars
@@ -211,7 +225,6 @@ fi
 #instances are to be used.
 attachVolume() {
 
-#instance="i-c49669e5"     <---Testing purposes
 if [ $f_debug -eq 1 ]; then
         echo "Attaching volume $volume to instance $instance..."
 fi
@@ -407,6 +420,7 @@ fi
 ##checks can be bypassed? More on this later
 #stat $1
 getEnvironmentVars
+getAvailabilityZone
 getInstance
 getHostname
 checkSSH
