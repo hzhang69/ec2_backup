@@ -112,7 +112,6 @@ if [ -z $volume ]; then
 	getVolumeStatus $volume
 	#wait for the volume to be available busy wait....
 	volumeWait 	
-	echo $volume
 else
 ##volume entered
 
@@ -127,7 +126,6 @@ else
 	fi
 
 	volumeWait
-	echo $volume
 fi
 
 }
@@ -274,7 +272,6 @@ fi
 
 while [ -z $hostname ] || [[ "$hostname" == *"None"* ]]; do
 	hostname=`aws ec2 describe-instances --output text | grep $instance | awk '{print $15}'`
-	echo $hostname
 done	
 
 if [ $f_debug -eq 1 ]; then
@@ -293,7 +290,6 @@ fi
 
 while [[ "$ncOutput" != *"succeeded"* ]]; do
 	ncOutput=`nc -zv -w $timeout $hostname $sshPort 2>&1`
-	echo "$ncOutput"
 done
 
 if [ $f_debug -eq 1 ]; then
@@ -320,7 +316,7 @@ if [ $f_debug -eq 1 ]; then
         echo "dd to remote..."
 fi
 
-dd if=$backup_name | ssh -o "StrictHostKeyChecking no" -i ../$keypair $username@$hostname sudo dd of=$mountpoint/$backup_name
+dd if=$backup_name | ssh -o "StrictHostKeyChecking no" -i $keypair $username@$hostname sudo dd of=$mountpoint/$backup_name
 
 if [ $f_debug -eq 1 ]; then
         echo "dd complete"
@@ -338,7 +334,7 @@ if [ $f_debug -eq 1 ]; then
 fi
 
 
-ssh -i ../$keypair -o "StrictHostKeyChecking no"  ubuntu@$hostname "
+ssh -i $keypair -o "StrictHostKeyChecking no"  ubuntu@$hostname "
 sudo mkfs -t ext4 $devicename >/dev/null 2>&1
 sudo mkdir $mountpoint >/dev/null 2>&1
 sudo mount $devicename $mountpoint >/dev/null 2>&1
@@ -417,8 +413,12 @@ checkSSH
 getVolume $1
 attachVolume
 createFilesystem
-ddBackup $1
-
+if [ "$method" = "rsync" ]; then
+	echo "TODO: rsync"
+else
+	ddBackup $1
+fi
+terminateInstance
 ##Testing the functions
 #getVolume $1
 #attachVolume $instanc
@@ -429,7 +429,5 @@ if [ $f_debug -eq 1 ]; then
 	echo "Volume Status: " $volumeStatus
 	echo "Volume Size: " $volumeSize
 fi
-
+echo "$volume"
 exit 0
-
-
