@@ -28,6 +28,9 @@ zone="us-east-1a"
 sshflags=""
 instance=""
 hostname=""
+sshPort=22
+timeout=5
+ncOutput=""
 
 attachment=""
 attachStatus=""
@@ -277,6 +280,25 @@ fi
 
 }
 
+#checkSSH will check the readiness of the remote host for an SSH connection.
+checkSSH(){
+
+if [ $f_debug -eq 1 ]; then
+        echo "Checking Host Availability..."
+fi
+
+
+while [[ "$ncOutput" =~ *"succeeded"* ]]; do
+	ncOutput=`nc -zv -w $timeout $hostname $sshPort 2>&1`
+	echo $ncOutput
+done
+
+if [ $f_debug -eq 1 ]; then
+        echo "Host Up!"
+fi
+
+}
+
 
 #Main
 ####################
@@ -338,6 +360,7 @@ fi
 #stat $1
 getInstance
 getHostname
+checkSSH
 terminateInstance
 ##Testing the functions
 #getVolume $1
