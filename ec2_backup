@@ -57,8 +57,8 @@ volumeSize=`aws --output text ec2 describe-volumes --volume-ids $1|awk '{print$4
 
 #if the volume does not come back in one of these two state it is unusable by out program
 if [ "$volumeStatus" != "available" ] && [ "$volumeStatus" != "creating" ];then
-	echo "$volumeStatus"
-	echo "The volume is in use, deleted, or there was an error creating it"
+	#echo "$volumeStatus"
+	echo "The volume is in use, deleted, or there was an error creating it" 1>&2
 	exit 1
 fi
 }
@@ -114,11 +114,11 @@ if [ -z $volume ]; then
                 ## Allocate 2*gbsize
                  let alloc=gbsize*2
         else
-                echo "Directory is too large to be allocated into a single volume."
+                echo "Directory is too large to be allocated into a single volume." 1>&2
                 exit 1
         fi
 	if [ -z $alloc ] || [ $alloc -eq 0 ]; then
-		echo "Invalid allocation size"
+		echo "Invalid allocation size" 1>&2
 		exit 1
 	fi
 
@@ -132,10 +132,10 @@ else
 	getVolumeStatus $volume
 	#Only error here I can think of outside status and size is zone incompatibility
 	if [ $gbsize -gt $volumeSize ]; then
-		echo "The volume given is too small to backup the file"
+		echo "The volume given is too small to backup the file" 1>&2
                 exit 1
 	elif [ $gbsize -eq $volumeSize ] && [ $gbsize -ne 1 ]; then
-		echo "The volume size and directory size are equal use a larger volume "
+		echo "The volume size and directory size are equal use a larger volume" 1>&2
 		exit 1
 	fi
 
@@ -178,7 +178,7 @@ done
 
 #If either the keypair or the security group are null then exit 1
 if [ -z  $keypair ] || [  -z $secgroup  ]; then
-        echo "The keypair or the security group are empty please set them in EC2_BACKUP_FLAGS_AWS"
+        echo "The keypair or the security group are empty please set them in EC2_BACKUP_FLAGS_AWS" 1>&2
         exit 1
 fi
 
@@ -195,7 +195,7 @@ done
 
 # if the flag is equal 0 it was not in the list above, exit 1 b/c there is not a valid security group
 if [ $f_secgroup -eq 0 ]; then
-	echo "The security group that was supplied is not valid"
+	echo "The security group that was supplied is not valid" 1>&2
 	exit 1
 fi
 
@@ -211,7 +211,7 @@ done
 
 # if the flag is equal 0 it was not in the list above, exit 1 b/c there is not a valid security group
 if [ $f_keypair -eq 0 ]; then
-        echo "The keypair that was supplied is not valid"
+        echo "The keypair that was supplied is not valid" 1>&2
         exit 1
 fi
 
@@ -271,7 +271,7 @@ dryrun_success="A client error (DryRunOperation) occurred when calling the RunIn
 instance_dryrun=`aws ec2  run-instances --output text --dry-run $ec2defaults ${EC2_BACKUP_FLAGS_AWS} 2>&1`
 
 if [ "$instance_dryrun" != "$dryrun_success" ]; then
-        echo "Instance instantiation failed : $instance_dryrun"
+        echo "Instance instantiation failed : $instance_dryrun" 1>&2
         exit 1;
 fi
 
@@ -383,7 +383,7 @@ while getopts "dhm:v:" o; do
 		if [ "$OPTARG" = "dd" ] || [ "$OPTARG" = "rsync" ]; then
 			method=$OPTARG
 		else
-			echo "Bad method argument choose rsync or dd"
+			echo "Bad method argument choose rsync or dd" 1>&2
 			exit 1
 		fi
             ;;
@@ -391,19 +391,19 @@ while getopts "dhm:v:" o; do
 		if [[ $OPTARG =~ ^vol-.{8,20} ]]; then 
 	                volume=$OPTARG
 		else 
-			echo "Volume id is not well formed"
+			echo "Volume id is not well formed" 1>&2
 			exit 1
 		fi
 		##Check to see if the volume is valid
 		 volcheck=`aws ec2 describe-volumes --volume-ids $volume`
 	 	if [[ "$volcheck" =~ ^A.client.error ]]; then
-			echo "Error setting the volume, please check the volume"
+			echo "Error setting the volume, please check the volume" 1>&2
 			exit 1
 		fi
            ;;
 
         *)
-		usage
+		usage 1>&2
                 exit 1;
             ;;
     esac
@@ -413,12 +413,12 @@ done
 shift $(($OPTIND - 1))
 
 if [ -z $1 ]; then
-	echo "No Directory entered"
+	echo "No Directory entered" 1>&2
 	exit 1
 fi
 
 if [ ! -d $1 ]; then
-        echo "Argument is not a directory"
+        echo "Argument is not a directory" 1>&2
         exit 1
 fi
 
