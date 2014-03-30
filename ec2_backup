@@ -24,7 +24,7 @@ volumeSize=""
 
 ###INSTANCE
 ec2defaults="--image-id ami-6de0dd04  --count 1 --instance-type t1.micro"
-zone="us-east-1a"
+zone="us-east-1c"
 sshflags=""
 instance=""
 hostname=""
@@ -64,7 +64,7 @@ volumeWait() {
 	if [ $f_debug -eq 1 ]; then
 		echo "Volume initializing..."
 	fi
-        while [ "$volumeStatus" != "available" ]; do
+        while [[ "$volumeStatus" != *"available"* ]]; do
                 getVolumeStatus $volume
 		sleep 1
 		if [ $f_debug -eq 1 ]; then
@@ -361,6 +361,8 @@ fi
 getInstance
 getHostname
 checkSSH
+getVolume $1
+attachVolume
 terminateInstance
 ##Testing the functions
 #getVolume $1
