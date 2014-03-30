@@ -148,6 +148,12 @@ fi
 #program to work correctly. We need to look a the two that pertain to EC2 as per the spec
 #not sure what I can do to make the AMAZON environment variables work correctly...
 getEnvironmentVars() {
+
+if [ $f_debug -eq 1 ]; then
+                echo "Checking for environment variables..."
+fi
+
+
 ec2flags=${EC2_BACKUP_FLAGS_AWS}
 verbose=${EC2_BACKUP_VERBOSE}
 
