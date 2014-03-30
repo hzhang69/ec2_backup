@@ -257,7 +257,7 @@ sleep 3
 }
 
 terminateInstance() {
-aws ec2 terminate-instances --instance-ids $instance
+aws ec2 terminate-instances --instance-ids $instance >/dev/null
 }
 
 getHostname(){
@@ -266,7 +266,7 @@ if [ $f_debug -eq 1 ]; then
         echo "Waiting to get hostname..."
 fi
 
-while [ -z $hostname ] && [ $hostname!="None" ]; do
+while [ -z $hostname ] || [[ "$hostname" == *"None"* ]]; do
 	hostname=`aws ec2 describe-instances --output text | grep $instance | awk '{print $15}'`
 	sleep 5;	
 done	
@@ -338,6 +338,7 @@ fi
 #stat $1
 getInstance
 getHostname
+terminateInstance
 ##Testing the functions
 #getVolume $1
 #attachVolume $instanc
