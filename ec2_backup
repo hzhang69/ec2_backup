@@ -401,10 +401,11 @@ if [ $f_debug -eq 1 ]; then
 	echo "Performing rsync on directory..."
 fi
 
-rsyncstat=`rsync -r -a -q -v -e "ssh -i $keypair" --delete $1 $username@$hostname:$mountpoint 2>$1`
+rsyncstat=`rsync -r -a -q -v -e "ssh $EC2_BACKUP_FLAGS_SSH -o StrictKeyChecking=no" --delete $1 $username@$hostname:$mountpoint 2>$1`
 
 if [ $? -gt 0 ]; then
-	echo $rsyncstat
+	echo $rsyncstat 1>&2
+	errorTerminate
 	exit 1
 fi
 
@@ -510,8 +511,8 @@ getVolume $1
 attachVolume
 if [ "$method" = "rsync" ]; then
 
-	echo "TODO: rsync"
 	createFilesystem
+	rsyncBackup $1
 else
 	ddBackup $1
 fi
