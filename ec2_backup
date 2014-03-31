@@ -16,7 +16,7 @@
 #####################
 f_debug=0
 f_uservol=0
-method=""
+method="dd"
 backup_name="backup.tar"
 
 ###VOLUME
