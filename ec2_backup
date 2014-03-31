@@ -189,6 +189,12 @@ do
 
 done
 
+
+if [ $f_debug -eq 1 ]; then
+echo "Security Group: $secgroup  Kenyname: $keypair"
+fi
+
+
 #If either the keypair or the security group are null then exit 1
 if [ -z  $keypair ] || [  -z $secgroup  ]; then
         echo "The keypair or the security group are empty please set them in EC2_BACKUP_FLAGS_AWS" 1>&2
