@@ -330,7 +330,7 @@ while [[ "$instanceState" != "running" ]]; do
                 sleep 1
         done
 
-if [ $f_debug -eq 1]; then
+if [ $f_debug -eq 1 ]; then
 	echo "Instance ID: $instance "
 fi
 #Extra sleep to make sure that the instance has more time to boot up before ssh wait happends
@@ -339,7 +339,7 @@ sleep 3
 
 terminateInstance() {
 
-if [ $f_debug -eq 1]; then
+if [ $f_debug -eq 1 ]; then
         echo "Cleaning up instnce: $instance "
 fi
 
