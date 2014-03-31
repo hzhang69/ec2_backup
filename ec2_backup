@@ -394,6 +394,24 @@ if [ $f_debug -eq 1 ]; then
 fi
 }
 
+#Rsync backup
+rsyncBackup() {
+if [ $f_debug -eq 1 ]; then
+	echo "Performing rsync on directory..."
+fi
+
+rsyncstat=`rsync -r -a -q -v -e "ssh -i $keypair" --delete $1 $username@$hostname:$mountpoint 2>$1`
+
+if [ $? -gt 0 ]; then
+	echo $rsyncstat
+	exit 1
+fi
+
+if [ $f_debug -eq 1 ]; then
+	echo "rsync complete."
+fi
+}
+
 #createFilesystem
 #this function will create a filesystem on the attached volume and mount the 
 createFilesystem(){
