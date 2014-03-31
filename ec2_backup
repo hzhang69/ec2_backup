@@ -395,8 +395,7 @@ if [ $f_debug -eq 1 ]; then
         echo "dd to remote..."
 fi
 
-#dd if=$backup_name | ssh -o "StrictHostKeyChecking no" -i $keypair $username@$hostname sudo dd of=$mountpoint/$backup_name
-var=`tar -cf - $1 | ssh \${EC2_BACKUP_FLAGS_SSH} -o StrictHostKeyChecking=no $username@$hostname 'sudo dd of=/dev/sdh' 2>&1`
+var=`tar -cf - $1 | ssh \${EC2_BACKUP_FLAGS_SSH} -o StrictHostKeyChecking=no $username@$hostname 'sudo dd of=devicename' 2>&1`
 if [ $? -gt 0 ];then
 	echo $var 1>&2
 	errorTerminate
