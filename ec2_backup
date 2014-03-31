@@ -58,6 +58,7 @@ errorTerminate() {
         fi
 
         if [ ! -z "$volume" ] && [ $f_uservol -eq 0 ] ; then
+		aws ec2 detach-volume --force --volume-id $volume --instance-id $instance >/dev/null
                 aws ec2 delete-volume --volume-id $volume >/dev/null
         fi
 
