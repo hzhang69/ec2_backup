@@ -21,3 +21,5 @@ The Keypair and the Security Group are to come from the AWS_EC2_BACKUP_FLAGS, if
 SSH KEY
 ==========
 ec2_backup always uses the default ssh key pair configured on the system. The program was built to be key agnostic in the sense that it can be passed any ssh keypair via EC2_BACKUP_FLAGS_SSH (using the -i option) but does not check to see that the pair supplied in the flags matches the ssh key baked into the instance at creation time. If there is a key mismatch the program will exit gracefully and print the error output of SSH to STDERR along with a message prefix.
+
+ec2_backup does not support ~ path expansion for SSH key pairs. All keypairs passed using the -i flag in the EC2_BACKUP_FLAGS_SSH must include the absolute path. This is because passing the relative path in ssh -i prompts a check to /etc/passwd for the users home directory and appears to be handled incorrectly by ssh if the user does not have an entry like on the linuxlab system where this program will run.
