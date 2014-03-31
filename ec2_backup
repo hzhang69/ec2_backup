@@ -94,6 +94,7 @@ volumeWait() {
 		echo "Volume initializing..."
 	fi
         while [[ "$volumeStatus" != *"available"* ]]; do
+p
                 getVolumeStatus $volume
 		sleep 1
 		if [ $f_debug -eq 1 ]; then
@@ -266,9 +267,6 @@ attachWait() {
         while [[ "$attachStatus" != *"attached"* ]]; do
 
                 sleep 1
-                if [ $f_debug -eq 1 ]; then
-                        echo "Waiting for the volume to attach..."
-                fi
 
                 attachStatus=`aws ec2 describe-volumes --output text | grep $attachPoint | awk '{print $6}'`
         done
@@ -278,7 +276,6 @@ attachWait() {
 #this function will also terminate on any instance status code besides pending and running
 getInstanceStatus() {
 instanceState=`aws ec2 describe-instances --output text --instance-id $instance | grep STATE| awk '{print $3}'`
-        echo "Instance State: $instanceState"
 
         if [ "$instanceState" != "pending" ] && [ "$instanceState" != "running" ]; then
                 echo " Instance is in an unusable state" 1>&2
@@ -498,9 +495,6 @@ if [ ! -d $1 ]; then
         exit 1
 fi
 
-##Maybe we should stat the file for error checking? Is there any case in which the above
-##checks can be bypassed? More on this later
-#stat $1
 verifyImageAvailability
 getEnvironmentVars
 getAvailabilityZone
@@ -509,6 +503,8 @@ getHostname
 checkSSH
 getVolume $1
 attachVolume
+
+
 if [ "$method" = "rsync" ]; then
 
 	createFilesystem
@@ -516,16 +512,9 @@ if [ "$method" = "rsync" ]; then
 else
 	ddBackup $1
 fi
+
+
 terminateInstance
-##Testing the functions
-#getVolume $1
-#attachVolume $instanc
-#getVolume $1
 
-if [ $f_debug -eq 1 ]; then
-
-	echo "Volume Status: " $volumeStatus
-	echo "Volume Size: " $volumeSize
-fi
 echo "$volume"
 exit 0
