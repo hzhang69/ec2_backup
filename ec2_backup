@@ -43,7 +43,7 @@ attachStatus=""
 attachPoint="/dev/sdh"
 devicename="/dev/xvdh"
 mountpoint="/media/backup"
-
+rsyncstatus=""
 
 #Functions
 #####################
@@ -414,7 +414,7 @@ if [ $f_debug -eq 1 ]; then
 	echo "Performing rsync on directory..."
 fi
 
-rsyncstat=`rsync -r -a -q -v -e "ssh $EC2_BACKUP_FLAGS_SSH -o StrictKeyChecking=no" --delete $1 $username@$hostname:$mountpoint 2>$1`
+rsyncstatus=`rsync -ravv --rsync-path="sudo rsync" -e "ssh $EC2_BACKUP_FLAGS_SSH -o StrictHostKeyChecking=no" --delete $1 $username@$hostname:$mountpoint 2>&1`
 
 if [ $? -gt 0 ]; then
 	echo $rsyncstat 1>&2
@@ -436,7 +436,7 @@ if [ $f_debug -eq 1 ]; then
 fi
 
 
-var=`ssh  -o "StrictHostKeyChecking no" ${EC2_BACKUP_FLAGS_SSH}  ubuntu@$hostname "
+var=`ssh  -o "StrictHostKeyChecking=no" ${EC2_BACKUP_FLAGS_SSH}  ubuntu@$hostname "
 sudo mkfs -t ext4 $devicename >/dev/null 2>&1
 sudo mkdir $mountpoint >/dev/null 2>&1
 sudo mount $devicename $mountpoint >/dev/null 2>&1
