@@ -382,9 +382,10 @@ if [ $f_debug -eq 1 ]; then
 fi
 
 #dd if=$backup_name | ssh -o "StrictHostKeyChecking no" -i $keypair $username@$hostname sudo dd of=$mountpoint/$backup_name
-var=`tar -cf - $1 | ssh -o "StrictHostKeyChecking no" -i $keypair $username@$hostname 'sudo dd of=/dev/sdh' 2>&1`
+var=`tar -cf - $1 | ssh \${EC2_BACKUP_FLAGS_SSH} -o StrictHostKeyChecking=no $username@$hostname 'sudo dd of=/dev/sdh' 2>&1`
 if [ $? -gt 0 ];then
-        echo $var
+	echo $var 1>&2
+	errorTerminate
         exit 1
 fi
 
@@ -421,7 +422,7 @@ if [ $f_debug -eq 1 ]; then
 fi
 
 
-var=`ssh -i $keypair -o "StrictHostKeyChecking no"  ubuntu@$hostname "
+var=`ssh  -o "StrictHostKeyChecking no" ${EC2_BACKUP_FLAGS_SSH}  ubuntu@$hostname "
 sudo mkfs -t ext4 $devicename >/dev/null 2>&1
 sudo mkdir $mountpoint >/dev/null 2>&1
 sudo mount $devicename $mountpoint >/dev/null 2>&1
